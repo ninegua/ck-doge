@@ -84,7 +84,7 @@ impl Decodable for TxMerkleNode {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
 pub struct BlockHeader {
     /// Block version, now repurposed for soft fork signalling.
     pub version: u32,
