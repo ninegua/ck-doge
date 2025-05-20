@@ -119,7 +119,7 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c8d66485a3a2ea485c1913c4572ce0256067a5377ac8c75c4960e1cda98605f"
 dependencies = [
- "bitcoin-internals",
+ "bitcoin-internals 0.3.0",
  "bitcoin_hashes",
 ]
 
@@ -193,9 +193,9 @@ checksum = "ad8929a18b8e33ea6b3c09297b687baaa71fb1b97353243a3f1029fad5c59c5b"
 dependencies = [
  "base58ck",
  "bech32",
- "bitcoin-internals",
+ "bitcoin-internals 0.3.0",
  "bitcoin-io",
- "bitcoin-units",
+ "bitcoin-units 0.1.2",
  "bitcoin_hashes",
  "hex-conservative",
  "hex_lit",
@@ -209,6 +209,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30bdbe14aa07b06e6cfeffc529a1f099e5fbe249524f8125358604df99a4bed2"
 
 [[package]]
+name = "bitcoin-internals"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b854212e29b96c8f0fe04cab11d57586c8f3257de0d146c76cb3b42b3eb9118"
+
+[[package]]
 name = "bitcoin-io"
 version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -220,7 +226,16 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5285c8bcaa25876d07f37e3d30c303f2609179716e11d688f51e8f1fe70063e2"
 dependencies = [
- "bitcoin-internals",
+ "bitcoin-internals 0.3.0",
+]
+
+[[package]]
+name = "bitcoin-units"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d61aec975b0c91f4d2ee891c6e69e6ec2b94b3791336b7b76f9f4a9cbdeae3f7"
+dependencies = [
+ "bitcoin-internals 0.4.0",
 ]
 
 [[package]]
@@ -671,7 +686,9 @@ dependencies = [
  "async-trait",
  "base64 0.21.7",
  "bitcoin",
+ "bitcoin-internals 0.3.0",
  "bitcoin-io",
+ "bitcoin-units 0.2.0",
  "bytes",
  "candid",
  "ciborium",

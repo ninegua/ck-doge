@@ -10,6 +10,7 @@ pub mod canister;
 pub mod chainparams;
 pub mod jsonrpc;
 pub mod opcodes;
+pub mod p2p;
 pub mod script;
 pub mod sighash;
 pub mod transaction;
