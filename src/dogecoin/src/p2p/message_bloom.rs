@@ -5,10 +5,10 @@
 //! This module describes BIP37 Connection Bloom filtering network messages.
 //!
 
-use io::{Read, Write};
+use bitcoin_io::{Read, Write};
 
-use crate::consensus::{encode, Decodable, Encodable, ReadExt};
 use crate::internal_macros::impl_consensus_encoding;
+use bitcoin::consensus::{encode, Decodable, Encodable, ReadExt};
 
 /// `filterload` message sets the current bloom filter
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -37,7 +37,7 @@ pub enum BloomFlags {
 }
 
 impl Encodable for BloomFlags {
-    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, bitcoin_io::Error> {
         w.write_all(&[match self {
             BloomFlags::None => 0,
             BloomFlags::All => 1,

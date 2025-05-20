@@ -6,14 +6,15 @@
 //! Bitcoin data (blocks and transactions) around.
 //!
 
-use hashes::{sha256d, Hash as _};
-use io::{Read, Write};
+use bitcoin::hashes::{sha256d, Hash as _};
+use bitcoin_io::{Read, Write};
 
-use crate::blockdata::block::BlockHash;
-use crate::blockdata::transaction::{Txid, Wtxid};
-use crate::consensus::encode::{self, Decodable, Encodable};
+use crate::block::BlockHash;
 use crate::internal_macros::impl_consensus_encoding;
 use crate::p2p;
+use crate::transaction::Txid;
+use bitcoin::consensus::encode::{self, Decodable, Encodable};
+use bitcoin::transaction::Wtxid;
 
 /// An inventory item.
 #[derive(PartialEq, Eq, Clone, Debug, Copy, Hash, PartialOrd, Ord)]
@@ -61,7 +62,7 @@ impl Inventory {
 
 impl Encodable for Inventory {
     #[inline]
-    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, bitcoin_io::Error> {
         macro_rules! encode_inv {
             ($code:expr, $item:expr) => {
                 u32::consensus_encode(&$code, w)? + $item.consensus_encode(w)?
@@ -75,7 +76,10 @@ impl Encodable for Inventory {
             Inventory::WTx(w) => encode_inv!(5, w),
             Inventory::WitnessTransaction(ref t) => encode_inv!(0x40000001, t),
             Inventory::WitnessBlock(ref b) => encode_inv!(0x40000002, b),
-            Inventory::Unknown { inv_type: t, hash: ref d } => encode_inv!(t, d),
+            Inventory::Unknown {
+                inv_type: t,
+                hash: ref d,
+            } => encode_inv!(t, d),
         })
     }
 }
@@ -92,7 +96,10 @@ impl Decodable for Inventory {
             5 => Inventory::WTx(Decodable::consensus_decode(r)?),
             0x40000001 => Inventory::WitnessTransaction(Decodable::consensus_decode(r)?),
             0x40000002 => Inventory::WitnessBlock(Decodable::consensus_decode(r)?),
-            tp => Inventory::Unknown { inv_type: tp, hash: Decodable::consensus_decode(r)? },
+            tp => Inventory::Unknown {
+                inv_type: tp,
+                hash: Decodable::consensus_decode(r)?,
+            },
         })
     }
 }
@@ -107,7 +114,7 @@ pub struct GetBlocksMessage {
     /// Locator hashes --- ordered newest to oldest. The remote peer will
     /// reply with its longest known chain, starting from a locator hash
     /// if possible and block 1 otherwise.
-    pub locator_hashes: Vec<BlockHash>,
+    pub locator_hashes: crate::Vec_<BlockHash>,
     /// References the block to stop at, or zero to just fetch the maximum 500 blocks
     pub stop_hash: BlockHash,
 }
@@ -120,7 +127,7 @@ pub struct GetHeadersMessage {
     /// Locator hashes --- ordered newest to oldest. The remote peer will
     /// reply with its longest known chain, starting from a locator hash
     /// if possible and block 1 otherwise.
-    pub locator_hashes: Vec<BlockHash>,
+    pub locator_hashes: crate::Vec_<BlockHash>,
     /// References the header to stop at, or zero to just fetch the maximum 2000 headers
     pub stop_hash: BlockHash,
 }
@@ -128,7 +135,11 @@ pub struct GetHeadersMessage {
 impl GetBlocksMessage {
     /// Construct a new `getblocks` message
     pub fn new(locator_hashes: Vec<BlockHash>, stop_hash: BlockHash) -> GetBlocksMessage {
-        GetBlocksMessage { version: p2p::PROTOCOL_VERSION, locator_hashes, stop_hash }
+        GetBlocksMessage {
+            version: p2p::PROTOCOL_VERSION,
+            locator_hashes: locator_hashes.into(),
+            stop_hash,
+        }
     }
 }
 
@@ -137,7 +148,11 @@ impl_consensus_encoding!(GetBlocksMessage, version, locator_hashes, stop_hash);
 impl GetHeadersMessage {
     /// Construct a new `getheaders` message
     pub fn new(locator_hashes: Vec<BlockHash>, stop_hash: BlockHash) -> GetHeadersMessage {
-        GetHeadersMessage { version: p2p::PROTOCOL_VERSION, locator_hashes, stop_hash }
+        GetHeadersMessage {
+            version: p2p::PROTOCOL_VERSION,
+            locator_hashes: locator_hashes.into(),
+            stop_hash,
+        }
     }
 }
 

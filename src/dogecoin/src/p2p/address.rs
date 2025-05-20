@@ -9,10 +9,10 @@
 use core::{fmt, iter};
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6, ToSocketAddrs};
 
-use io::{Read, Write};
+use bitcoin_io::{Read, Write};
 
-use crate::consensus::encode::{self, Decodable, Encodable, ReadExt, VarInt, WriteExt};
 use crate::p2p::ServiceFlags;
+use bitcoin::consensus::encode::{self, Decodable, Encodable, ReadExt, VarInt, WriteExt};
 
 /// A message which can be sent on the Bitcoin network
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -34,19 +34,26 @@ impl Address {
             SocketAddr::V4(addr) => (addr.ip().to_ipv6_mapped().segments(), addr.port()),
             SocketAddr::V6(addr) => (addr.ip().segments(), addr.port()),
         };
-        Address { address, port, services }
+        Address {
+            address,
+            port,
+            services,
+        }
     }
 
     /// Extract socket address from an [Address] message.
     /// This will return [io::Error] [io::ErrorKind::AddrNotAvailable]
     /// if the message contains a Tor address.
-    pub fn socket_addr(&self) -> Result<SocketAddr, io::Error> {
+    pub fn socket_addr(&self) -> Result<SocketAddr, bitcoin_io::Error> {
         let addr = &self.address;
         if addr[0..3] == ONION {
-            return Err(io::Error::from(io::ErrorKind::AddrNotAvailable));
+            return Err(bitcoin_io::Error::from(
+                bitcoin_io::ErrorKind::AddrNotAvailable,
+            ));
         }
-        let ipv6 =
-            Ipv6Addr::new(addr[0], addr[1], addr[2], addr[3], addr[4], addr[5], addr[6], addr[7]);
+        let ipv6 = Ipv6Addr::new(
+            addr[0], addr[1], addr[2], addr[3], addr[4], addr[5], addr[6], addr[7],
+        );
         if let Some(ipv4) = ipv6.to_ipv4() {
             Ok(SocketAddr::V4(SocketAddrV4::new(ipv4, self.port)))
         } else {
@@ -57,7 +64,7 @@ impl Address {
 
 impl Encodable for Address {
     #[inline]
-    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, bitcoin_io::Error> {
         let mut len = self.services.consensus_encode(w)?;
 
         for word in &self.address {
@@ -141,12 +148,12 @@ pub enum AddrV2 {
 }
 
 impl Encodable for AddrV2 {
-    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, bitcoin_io::Error> {
         fn encode_addr<W: Write + ?Sized>(
             w: &mut W,
             network: u8,
             bytes: &[u8],
-        ) -> Result<usize, io::Error> {
+        ) -> Result<usize, bitcoin_io::Error> {
             let len = network.consensus_encode(w)?
                 + VarInt::from(bytes.len()).consensus_encode(w)?
                 + bytes.len();
@@ -260,17 +267,19 @@ impl AddrV2Message {
     /// Extract socket address from an [AddrV2Message] message.
     /// This will return [io::Error] [io::ErrorKind::AddrNotAvailable]
     /// if the address type can't be converted into a [SocketAddr].
-    pub fn socket_addr(&self) -> Result<SocketAddr, io::Error> {
+    pub fn socket_addr(&self) -> Result<SocketAddr, bitcoin_io::Error> {
         match self.addr {
             AddrV2::Ipv4(addr) => Ok(SocketAddr::V4(SocketAddrV4::new(addr, self.port))),
             AddrV2::Ipv6(addr) => Ok(SocketAddr::V6(SocketAddrV6::new(addr, self.port, 0, 0))),
-            _ => Err(io::Error::from(io::ErrorKind::AddrNotAvailable)),
+            _ => Err(bitcoin_io::Error::from(
+                bitcoin_io::ErrorKind::AddrNotAvailable,
+            )),
         }
     }
 }
 
 impl Encodable for AddrV2Message {
-    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, bitcoin_io::Error> {
         let mut len = 0;
         len += self.time.consensus_encode(w)?;
         len += VarInt(self.services.to_u64()).consensus_encode(w)?;
@@ -467,7 +476,10 @@ mod test {
 
         // Valid TORv2.
         let ip: AddrV2 = deserialize(&hex!("030af1f2f3f4f5f6f7f8f9fa")).unwrap();
-        assert_eq!(ip, AddrV2::TorV2(FromHex::from_hex("f1f2f3f4f5f6f7f8f9fa").unwrap()));
+        assert_eq!(
+            ip,
+            AddrV2::TorV2(FromHex::from_hex("f1f2f3f4f5f6f7f8f9fa").unwrap())
+        );
 
         // Invalid TORv2, with bogus length.
         assert!(deserialize::<AddrV2>(&hex!("030700")).is_err());
@@ -510,7 +522,10 @@ mod test {
 
         // Valid CJDNS.
         let ip: AddrV2 = deserialize(&hex!("0610fc000001000200030004000500060007")).unwrap();
-        assert_eq!(ip, AddrV2::Cjdns(Ipv6Addr::from_str("fc00:1:2:3:4:5:6:7").unwrap()));
+        assert_eq!(
+            ip,
+            AddrV2::Cjdns(Ipv6Addr::from_str("fc00:1:2:3:4:5:6:7").unwrap())
+        );
 
         // Invalid CJDNS, incorrect marker
         assert!(deserialize::<AddrV2>(&hex!("0610fd000001000200030004000500060007")).is_err());

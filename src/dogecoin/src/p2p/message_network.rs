@@ -6,15 +6,15 @@
 //! capabilities.
 //!
 
-use hashes::sha256d;
-use io::{Read, Write};
+use bitcoin::hashes::sha256d;
+use bitcoin_io::{Read, Write};
 
-use crate::consensus::{encode, Decodable, Encodable, ReadExt};
 use crate::internal_macros::impl_consensus_encoding;
 use crate::p2p;
 use crate::p2p::address::Address;
 use crate::p2p::ServiceFlags;
-use crate::prelude::*;
+use bitcoin::consensus::{encode, Decodable, Encodable, ReadExt};
+use std::borrow::Cow;
 
 /// Some simple messages
 
@@ -110,7 +110,7 @@ pub enum RejectReason {
 }
 
 impl Encodable for RejectReason {
-    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, io::Error> {
+    fn consensus_encode<W: Write + ?Sized>(&self, w: &mut W) -> Result<usize, bitcoin_io::Error> {
         w.write_all(&[*self as u8])?;
         Ok(1)
     }
