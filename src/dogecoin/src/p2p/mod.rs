@@ -20,18 +20,12 @@ pub mod message_filter;
 #[cfg(feature = "std")]
 pub mod message_network;
 
-use core::str::FromStr;
 use core::{fmt, ops};
 
-use bitcoin_internals::{debug_from_display, write_err};
 use bitcoin_io as io;
-use hex::FromHex;
 use io::{Read, Write};
-use std::borrow::{Borrow, BorrowMut};
 
 use bitcoin::consensus::encode::{self, Decodable, Encodable};
-use bitcoin::consensus::Params;
-use bitcoin::network::Network;
 
 #[rustfmt::skip]
 #[doc(inline)]
@@ -229,207 +223,9 @@ impl Decodable for ServiceFlags {
         Ok(ServiceFlags(Decodable::consensus_decode(r)?))
     }
 }
-/// Network magic bytes to identify the cryptocurrency network the message was intended for.
-#[derive(Copy, PartialEq, Eq, PartialOrd, Ord, Clone, Hash)]
-pub struct Magic([u8; 4]);
 
-impl Magic {
-    /// Bitcoin mainnet network magic bytes.
-    pub const BITCOIN: Self = Self([0xF9, 0xBE, 0xB4, 0xD9]);
-    /// Bitcoin testnet3 network magic bytes.
-    #[deprecated(since = "0.32.4", note = "Use TESTNET3 instead")]
-    pub const TESTNET: Self = Self([0x0B, 0x11, 0x09, 0x07]);
-    /// Bitcoin testnet3 network magic bytes.
-    pub const TESTNET3: Self = Self([0x0B, 0x11, 0x09, 0x07]);
-    /// Bitcoin testnet4 network magic bytes.
-    pub const TESTNET4: Self = Self([0x1c, 0x16, 0x3f, 0x28]);
-    /// Bitcoin signet network magic bytes.
-    pub const SIGNET: Self = Self([0x0A, 0x03, 0xCF, 0x40]);
-    /// Bitcoin regtest network magic bytes.
-    pub const REGTEST: Self = Self([0xFA, 0xBF, 0xB5, 0xDA]);
+pub use bitcoin::p2p::Magic;
 
-    /// Create network magic from bytes.
-    pub fn from_bytes(bytes: [u8; 4]) -> Magic {
-        Magic(bytes)
-    }
-
-    /// Get network magic bytes.
-    pub fn to_bytes(self) -> [u8; 4] {
-        self.0
-    }
-
-    /// Returns the magic bytes for the network defined by `params`.
-    pub fn from_params(params: impl AsRef<Params>) -> Self {
-        params.as_ref().network.into()
-    }
-}
-
-impl FromStr for Magic {
-    type Err = ParseMagicError;
-
-    fn from_str(s: &str) -> Result<Magic, Self::Err> {
-        match <[u8; 4]>::from_hex(s) {
-            Ok(magic) => Ok(Magic::from_bytes(magic)),
-            Err(e) => Err(ParseMagicError {
-                error: e,
-                magic: s.to_owned(),
-            }),
-        }
-    }
-}
-
-impl From<Network> for Magic {
-    fn from(network: Network) -> Magic {
-        match network {
-            // Note: new network entries must explicitly be matched in `try_from` below.
-            Network::Bitcoin => Magic::BITCOIN,
-            Network::Testnet => Magic::TESTNET3,
-            Network::Testnet4 => Magic::TESTNET4,
-            Network::Signet => Magic::SIGNET,
-            Network::Regtest => Magic::REGTEST,
-            _ => todo!()
-        }
-    }
-}
-
-impl TryFrom<Magic> for Network {
-    type Error = UnknownMagicError;
-
-    fn try_from(magic: Magic) -> Result<Self, Self::Error> {
-        match magic {
-            // Note: any new network entries must be matched against here.
-            Magic::BITCOIN => Ok(Network::Bitcoin),
-            Magic::TESTNET3 => Ok(Network::Testnet),
-            Magic::TESTNET4 => Ok(Network::Testnet4),
-            Magic::SIGNET => Ok(Network::Signet),
-            Magic::REGTEST => Ok(Network::Regtest),
-            _ => Err(UnknownMagicError(magic)),
-        }
-    }
-}
-
-impl fmt::Display for Magic {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        hex::fmt_hex_exact!(f, 4, &self.0, hex::Case::Lower)?;
-        Ok(())
-    }
-}
-debug_from_display!(Magic);
-
-impl fmt::LowerHex for Magic {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        hex::fmt_hex_exact!(f, 4, &self.0, hex::Case::Lower)?;
-        Ok(())
-    }
-}
-
-impl fmt::UpperHex for Magic {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        hex::fmt_hex_exact!(f, 4, &self.0, hex::Case::Upper)?;
-        Ok(())
-    }
-}
-
-impl Encodable for Magic {
-    fn consensus_encode<W: Write + ?Sized>(&self, writer: &mut W) -> Result<usize, io::Error> {
-        self.0.consensus_encode(writer)
-    }
-}
-
-impl Decodable for Magic {
-    fn consensus_decode<R: Read + ?Sized>(reader: &mut R) -> Result<Self, encode::Error> {
-        Ok(Magic(Decodable::consensus_decode(reader)?))
-    }
-}
-
-impl AsRef<[u8]> for Magic {
-    fn as_ref(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl AsRef<[u8; 4]> for Magic {
-    fn as_ref(&self) -> &[u8; 4] {
-        &self.0
-    }
-}
-
-impl AsMut<[u8]> for Magic {
-    fn as_mut(&mut self) -> &mut [u8] {
-        &mut self.0
-    }
-}
-
-impl AsMut<[u8; 4]> for Magic {
-    fn as_mut(&mut self) -> &mut [u8; 4] {
-        &mut self.0
-    }
-}
-
-impl Borrow<[u8]> for Magic {
-    fn borrow(&self) -> &[u8] {
-        &self.0
-    }
-}
-
-impl Borrow<[u8; 4]> for Magic {
-    fn borrow(&self) -> &[u8; 4] {
-        &self.0
-    }
-}
-
-impl BorrowMut<[u8]> for Magic {
-    fn borrow_mut(&mut self) -> &mut [u8] {
-        &mut self.0
-    }
-}
-
-impl BorrowMut<[u8; 4]> for Magic {
-    fn borrow_mut(&mut self) -> &mut [u8; 4] {
-        &mut self.0
-    }
-}
-
-/// An error in parsing magic bytes.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub struct ParseMagicError {
-    /// The error that occurred when parsing the string.
-    error: hex::HexToArrayError,
-    /// The byte string that failed to parse.
-    magic: String,
-}
-
-impl fmt::Display for ParseMagicError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write_err!(f, "failed to parse {} as network magic", self.magic; self.error)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for ParseMagicError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(&self.error)
-    }
-}
-
-/// Error in creating a Network from Magic bytes.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub struct UnknownMagicError(Magic);
-
-impl fmt::Display for UnknownMagicError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "unknown network magic {}", self.0)
-    }
-}
-
-#[cfg(feature = "std")]
-impl std::error::Error for UnknownMagicError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        None
-    }
-}
 
 #[cfg(test)]
 mod tests {
