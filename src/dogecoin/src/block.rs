@@ -128,6 +128,16 @@ impl BlockHeader {
             .expect("engines don't error");
         BlockHash::from_engine(enc)
     }
+
+    /// TODO: Fix me
+    pub fn target(&self) -> bitcoin::Target {
+        bitcoin::pow::CompactTarget::from_consensus(self.bits).into()
+    }
+
+    /// TODO: Fix me
+    pub fn work(&self) -> bitcoin::Work {
+        self.target().to_work()
+    }
 }
 
 impl Encodable for BlockHeader {
