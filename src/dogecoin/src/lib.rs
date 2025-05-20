@@ -64,6 +64,12 @@ impl<T> AsRef<Vec<T>> for Vec_<T> {
     }
 }
 
+impl<T> AsMut<Vec<T>> for Vec_<T> {
+    fn as_mut(&mut self) -> &mut Vec<T> {
+        &mut self.0
+    }
+}
+
 macro_rules! impl_vec {
     ($type: ty) => {
         impl Encodable for Vec_<$type> {
