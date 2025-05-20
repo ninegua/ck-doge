@@ -70,6 +70,12 @@ impl<T> AsMut<Vec<T>> for Vec_<T> {
     }
 }
 
+impl<T> Default for Vec_<T> {
+    fn default() -> Self {
+        Vec_(Vec::default())
+    }
+}
+
 macro_rules! impl_vec {
     ($type: ty) => {
         impl Encodable for Vec_<$type> {
