@@ -58,6 +58,12 @@ impl<T> From<Vec<T>> for Vec_<T> {
     }
 }
 
+impl<T> AsRef<Vec<T>> for Vec_<T> {
+    fn as_ref(&self) -> &Vec<T> {
+        &self.0
+    }
+}
+
 macro_rules! impl_vec {
     ($type: ty) => {
         impl Encodable for Vec_<$type> {
