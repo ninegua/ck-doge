@@ -3,12 +3,23 @@ use core::fmt;
 use core::str::FromStr;
 use serde::{Deserialize, Serialize};
 
+pub use bitcoin::network::NetworkKind;
+
 #[derive(Copy, PartialEq, Eq, PartialOrd, Ord, Clone, Hash, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Network {
     Dogecoin,
     Testnet,
     Regtest,
+}
+
+impl From<Network> for NetworkKind {
+    fn from(network: Network) -> Self {
+        match network {
+            Network::Dogecoin => NetworkKind::Main,
+            _ => NetworkKind::Test,
+        }
+    }
 }
 
 impl Network {
