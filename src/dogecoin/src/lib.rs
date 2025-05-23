@@ -15,6 +15,7 @@ pub mod p2p;
 pub mod script;
 pub mod sighash;
 pub mod transaction;
+pub mod network;
 
 pub extern crate hex;
 
