@@ -67,6 +67,10 @@ impl Address {
             ScriptBuf::default()
         }
     }
+
+    pub fn assume_checked(self) -> Self {
+        self
+    }
 }
 
 impl std::fmt::Display for Address {
