@@ -256,7 +256,7 @@ impl Decodable for MerkleTx {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct Block {
     /// The block header
     pub header: BlockHeader,
