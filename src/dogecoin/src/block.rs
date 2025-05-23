@@ -316,6 +316,74 @@ impl From<&Block> for BlockHash {
     }
 }
 
+pub fn genesis_block(params: impl AsRef<crate::chainparams::ChainParams>) -> Block {
+    let params = params.as_ref();
+    let txdata = vec![genesis_tx(params)];
+    let hash: bitcoin::hashes::sha256d::Hash = txdata[0].compute_txid().into();
+    let merkle_root: TxMerkleNode = hash.into();
+    let time;
+    let bits;
+    let nonce;
+    if params.chain_name == "main" {
+        time = 1386325540;
+        bits = 0x1e0ffff0;
+        nonce = 99943;
+    } else if params.chain_name == "test" {
+        time = 1391503289;
+        bits = 0x1e0ffff0;
+        nonce = 997879;
+    } else if params.chain_name == "regtest" {
+        time = 1296688602;
+        bits = 0x207fffff;
+        nonce = 2;
+    } else {
+        panic!(
+            "ChainParams has an unsupported chain_name {}",
+            params.chain_name
+        );
+    }
+    Block {
+        header: BlockHeader {
+            version: 1,
+            prev_blockhash: BlockHash::default(),
+            merkle_root,
+            time,
+            bits,
+            nonce,
+        },
+        txdata,
+        auxpow: None,
+    }
+}
+
+pub fn genesis_tx(_params: &crate::chainparams::ChainParams) -> crate::transaction::Transaction {
+    use bitcoin::script::{Builder, PushBytes};
+    use crate::transaction::*;
+    fn push_int_non_minimal(builder: Builder, data: i64) -> Builder {
+        let mut buf = [0u8; 8];
+        let len = bitcoin::blockdata::script::write_scriptint(&mut buf, data);
+        builder.push_slice(&<&PushBytes>::from(&buf)[..len])
+    }
+    let in_script = push_int_non_minimal(Builder::new().push_int(486604799), 4)
+        .push_slice(b"Nintondo")
+        .into_script();
+    let mut txin = TxIn::with_outpoint(OutPoint {
+        txid: Txid::default(),
+        vout: u32::MAX,
+    });
+    txin.script = in_script;
+    let txout = TxOut {
+      value: 88 * 100000000u64,
+      script_pubkey: bitcoin::script::ScriptBuf::from_hex("40184710fa689ad5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070ac7b03a9").unwrap()
+    };
+    Transaction {
+        version: 1,
+        lock_time: 0,
+        input: vec![txin],
+        output: vec![txout],
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
