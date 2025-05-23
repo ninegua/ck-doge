@@ -3,6 +3,7 @@ use bitcoin::consensus::{encode, Decodable, Encodable};
 use bitcoin::hashes::{hash_newtype, sha256d, Hash};
 use bitcoin::merkle_tree;
 use bitcoin_io::{Error, Read, Write};
+use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 
 use crate::transaction::Transaction;
@@ -22,9 +23,9 @@ impl Default for BlockHash {
 }
 
 impl From<BlockHash> for bitcoin::block::BlockHash {
-   fn from(hash: BlockHash) -> bitcoin::block::BlockHash {
+    fn from(hash: BlockHash) -> bitcoin::block::BlockHash {
         hash.0.into()
-   }
+    }
 }
 
 impl Deref for BlockHash {
@@ -91,7 +92,7 @@ impl Decodable for TxMerkleNode {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct BlockHeader {
     /// Block version, now repurposed for soft fork signalling.
     pub version: u32,
