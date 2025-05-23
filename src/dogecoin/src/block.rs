@@ -1,3 +1,4 @@
+use bitcoin::block::ValidationError;
 use bitcoin::consensus::{encode, Decodable, Encodable};
 use bitcoin::hashes::{hash_newtype, sha256d, Hash};
 use bitcoin::merkle_tree;
@@ -18,6 +19,12 @@ impl Default for BlockHash {
     fn default() -> BlockHash {
         BlockHash(sha256d::Hash::all_zeros())
     }
+}
+
+impl From<BlockHash> for bitcoin::block::BlockHash {
+   fn from(hash: BlockHash) -> bitcoin::block::BlockHash {
+        hash.0.into()
+   }
 }
 
 impl Deref for BlockHash {
@@ -129,14 +136,31 @@ impl BlockHeader {
         BlockHash::from_engine(enc)
     }
 
-    /// TODO: Fix me
+    /// FIXME
     pub fn target(&self) -> bitcoin::Target {
         bitcoin::pow::CompactTarget::from_consensus(self.bits).into()
     }
 
-    /// TODO: Fix me
+    /// FIXME
     pub fn work(&self) -> bitcoin::Work {
         self.target().to_work()
+    }
+
+    /// FIXME
+    pub fn validate_pow(
+        &self,
+        required_target: bitcoin::Target,
+    ) -> Result<BlockHash, ValidationError> {
+        let target = self.target();
+        if target != required_target {
+            return Err(ValidationError::BadTarget);
+        }
+        let block_hash = self.block_hash();
+        if target.is_met_by(block_hash.into()) {
+            Ok(block_hash)
+        } else {
+            Err(ValidationError::BadProofOfWork)
+        }
     }
 }
 
@@ -357,8 +381,8 @@ pub fn genesis_block(params: impl AsRef<crate::chainparams::ChainParams>) -> Blo
 }
 
 pub fn genesis_tx(_params: &crate::chainparams::ChainParams) -> crate::transaction::Transaction {
-    use bitcoin::script::{Builder, PushBytes};
     use crate::transaction::*;
+    use bitcoin::script::{Builder, PushBytes};
     fn push_int_non_minimal(builder: Builder, data: i64) -> Builder {
         let mut buf = [0u8; 8];
         let len = bitcoin::blockdata::script::write_scriptint(&mut buf, data);
