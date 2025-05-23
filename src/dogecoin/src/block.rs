@@ -194,7 +194,7 @@ impl Decodable for BlockHeader {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct MerkleBranch {
     pub hash: Vec<TxMerkleNode>,
     pub side_mask: u32,
@@ -220,7 +220,7 @@ impl Decodable for MerkleBranch {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct MerkleTx {
     pub coinbase_tx: Transaction,
     pub parent_hash: TxMerkleNode,

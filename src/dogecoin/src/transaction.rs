@@ -5,8 +5,9 @@
 use bitcoin::consensus::{encode, Decodable, Encodable};
 use bitcoin::hashes::{hash_newtype, sha256d, Hash};
 use bitcoin::{ScriptBuf, VarInt};
-use bitcoin_io::{Read, Error, Write};
+use bitcoin_io::{Error, Read, Write};
 use core::cmp;
+use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 
 use crate::{consensus_decode_from_vec, consensus_encode_vec, err_string};
@@ -47,7 +48,7 @@ impl Decodable for Txid {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct OutPoint {
     /// The referenced transaction's txid.
     pub txid: Txid,
@@ -92,7 +93,7 @@ impl Decodable for OutPoint {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Default)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Default, Serialize, Deserialize)]
 pub struct Witness {
     pub stack: Vec<u8>,
 }
@@ -116,7 +117,7 @@ impl Decodable for Witness {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct TxIn {
     pub prevout: OutPoint,
     pub script: ScriptBuf,
@@ -212,7 +213,7 @@ impl Decodable for TxIn {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct TxOut {
     pub value: u64,
     pub script_pubkey: ScriptBuf,
@@ -292,7 +293,7 @@ impl Decodable for TxOut {
  *   - CTxWitness wit;
  * - uint32_t nLockTime
  */
-#[derive(Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash, Serialize, Deserialize)]
 pub struct Transaction {
     pub version: u32,
     pub lock_time: u32,
