@@ -44,6 +44,8 @@ pub const ECPRIV_KEY_LEN: usize = 32; // bytes.
 pub const ECPUB_KEY_COMPRESSED_LEN: usize = 33; // bytes: [x02/x03][32-X] 2=even 3=odd
 pub const ECPUB_KEY_UNCOMPRESSED_LEN: usize = 65; // bytes: [x04][32-X][32-Y]
 
+pub type AddressParseError = String;
+
 #[derive(Clone, Ord, PartialOrd, PartialEq, Eq, Debug, Hash, Default, Serialize, Deserialize)]
 pub struct Address(pub [u8; 21]); // Dogecoin address (base-58 Public Key Hash aka PKH)
 impl Address {
@@ -71,6 +73,18 @@ impl Address {
 
     pub fn assume_checked(self) -> Self {
         self
+    }
+
+    pub fn require_network(
+        self,
+        network: crate::network::Network,
+    ) -> Result<Self, AddressParseError> {
+        let params: &ChainParams = network.as_ref();
+        if self.is_valid(params) {
+            Ok(self)
+        } else {
+            Err(format!("Address does not match network {}", network))
+        }
     }
 }
 
