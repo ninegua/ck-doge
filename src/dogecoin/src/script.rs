@@ -1,5 +1,6 @@
 use bitcoin::base58;
 use bitcoin::hashes::{hash160, Hash};
+use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 use crate::chainparams::ChainParams;
@@ -43,7 +44,7 @@ pub const ECPRIV_KEY_LEN: usize = 32; // bytes.
 pub const ECPUB_KEY_COMPRESSED_LEN: usize = 33; // bytes: [x02/x03][32-X] 2=even 3=odd
 pub const ECPUB_KEY_UNCOMPRESSED_LEN: usize = 65; // bytes: [x04][32-X][32-Y]
 
-#[derive(Clone, PartialEq, Eq, Debug, Hash, Default)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash, Default, Serialize, Deserialize)]
 pub struct Address(pub [u8; 21]); // Dogecoin address (base-58 Public Key Hash aka PKH)
 impl Address {
     pub fn is_p2pkh(&self, chain: &ChainParams) -> bool {
