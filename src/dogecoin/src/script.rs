@@ -137,6 +137,21 @@ impl Address {
     pub fn p2sh(script: &Script, chain: impl AsRef<ChainParams>) -> Address {
         p2sh_address(script.as_bytes(), chain).unwrap()
     }
+
+    /// Generates a script pubkey spending to this address.
+
+    pub fn script_pubkey(&self) -> ScriptBuf {
+        let mut bytes = [0u8; 20];
+        bytes.copy_from_slice(&self.0[1..21]);
+        let hash = hash160::Hash::from_bytes_ref(&bytes);
+        match self.address_type() {
+            Some(AddressType::P2pkh) => ScriptBuf::new_p2pkh(&PubkeyHash::from(hash.clone())),
+            Some(AddressType::P2sh) => ScriptBuf::new_p2sh(&ScriptHash::from(hash.clone())),
+            None => {
+                panic!("Address type unknown: {}", self)
+            }
+        }
+    }
 }
 
 impl std::fmt::Display for Address {
