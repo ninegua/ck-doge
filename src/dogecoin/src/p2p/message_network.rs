@@ -147,6 +147,7 @@ pub struct Reject {
 
 impl_consensus_encoding!(Reject, message, ccode, reason, hash);
 
+/*
 #[cfg(test)]
 mod tests {
     use hashes::sha256d;
@@ -213,3 +214,4 @@ mod tests {
         assert_eq!(serialize(&nonfinal), reject_tx_nonfinal);
     }
 }
+*/

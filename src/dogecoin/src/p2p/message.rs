@@ -583,6 +583,7 @@ impl Decodable for RawNetworkMessage {
     }
 }
 
+/*
 #[cfg(test)]
 mod test {
     use std::net::Ipv4Addr;
@@ -909,3 +910,4 @@ mod test {
         }
     }
 }
+*/

@@ -10,12 +10,12 @@ pub mod canister;
 pub mod chainparams;
 pub mod internal_macros;
 pub mod jsonrpc;
+pub mod network;
 pub mod opcodes;
 pub mod p2p;
 pub mod script;
 pub mod sighash;
 pub mod transaction;
-pub mod network;
 
 pub extern crate hex;
 
@@ -132,3 +132,5 @@ impl_vec!(p2p::message_blockdata::Inventory);
 impl_vec!((u32, p2p::address::Address));
 #[cfg(feature = "std")]
 impl_vec!(p2p::address::AddrV2Message);
+
+

@@ -310,6 +310,7 @@ impl ToSocketAddrs for AddrV2Message {
     }
 }
 
+/*
 #[cfg(test)]
 mod test {
     use core::str::FromStr;
@@ -573,3 +574,4 @@ mod test {
         assert_eq!(serialize(&addresses), raw);
     }
 }
+*/

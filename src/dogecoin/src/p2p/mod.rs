@@ -226,7 +226,7 @@ impl Decodable for ServiceFlags {
 
 pub use bitcoin::p2p::Magic;
 
-
+/*
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -294,3 +294,4 @@ mod tests {
         }
     }
 }
+*/

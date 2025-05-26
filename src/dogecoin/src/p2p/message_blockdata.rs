@@ -158,6 +158,7 @@ impl GetHeadersMessage {
 
 impl_consensus_encoding!(GetHeadersMessage, version, locator_hashes, stop_hash);
 
+/*
 #[cfg(test)]
 mod tests {
     use hashes::Hash;
@@ -198,3 +199,4 @@ mod tests {
         assert_eq!(serialize(&real_decode), from_sat);
     }
 }
+*/

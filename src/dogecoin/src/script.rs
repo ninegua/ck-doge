@@ -1,6 +1,6 @@
 use bitcoin::base58;
 use bitcoin::hashes::{hash160, Hash};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::str::FromStr;
 
 use crate::chainparams::ChainParams;
@@ -76,7 +76,7 @@ impl FromStr for AddressType {
     }
 }
 
-#[derive(Clone, Ord, PartialOrd, PartialEq, Eq, Debug, Hash, Default, Serialize, Deserialize)]
+#[derive(Clone, Ord, PartialOrd, PartialEq, Eq, Debug, Hash, Default)]
 pub struct Address(pub [u8; 21]); // Dogecoin address (base-58 Public Key Hash aka PKH)
 impl Address {
     pub fn is_p2pkh(&self, chain: &ChainParams) -> bool {
@@ -164,6 +164,7 @@ impl FromStr for Address {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        eprintln!("Address::from_str {}", s);
         match base58::decode_check(s) {
             Ok(key) => {
                 let mut addr = [0u8; 21];
@@ -176,6 +177,17 @@ impl FromStr for Address {
             }
             Err(_) => Err("invalid address".to_string()),
         }
+    }
+}
+
+crate::internal_macros::serde_string_deserialize_impl!(Address, "a Dogecoin address");
+
+impl Serialize for Address {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.collect_str(self)
     }
 }
 
@@ -288,4 +300,15 @@ pub fn classify_script(script: &[u8], chain: &ChainParams) -> (ScriptType, Optio
 
 fn is_op_n1(op: u8) -> bool {
     (OP_1..=OP_16).contains(&op)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn parse_address() {
+        let addr = Address::from_str("n48pquU8ieq7gidgJJ4vWD2jbsErmZvrwe");
+        assert!(addr.is_ok());
+    }
 }
