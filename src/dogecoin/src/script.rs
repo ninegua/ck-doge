@@ -129,6 +129,14 @@ impl Address {
         }
         None
     }
+
+    pub fn p2pkh(pubkey: &[u8], chain: impl AsRef<ChainParams>) -> Result<Address, String> {
+        p2pkh_address(pubkey, chain)
+    }
+
+    pub fn p2sh(pubkey: &[u8], chain: impl AsRef<ChainParams>) -> Result<Address, String> {
+        p2sh_address(pubkey, chain)
+    }
 }
 
 impl std::fmt::Display for Address {
