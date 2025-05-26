@@ -118,16 +118,16 @@ impl Address {
         }
     }
 
-    pub fn address_type(&self) -> AddressType {
+    pub fn address_type(&self) -> Option<AddressType> {
         for network in [Network::Dogecoin, Network::Testnet, Network::Regtest] {
             if self.is_p2pkh(network.as_ref()) {
-                return AddressType::P2pkh;
+                return Some(AddressType::P2pkh);
             }
             if self.is_p2sh(network.as_ref()) {
-                return AddressType::P2sh;
+                return Some(AddressType::P2sh);
             }
         }
-        panic!("Unknown address_type: {}", self)
+        None
     }
 }
 
