@@ -25,7 +25,7 @@ where
     W: Write + ?Sized,
 {
     let mut len = 0;
-    VarInt::from(vv.len()).consensus_encode(w)?;
+    len += VarInt::from(vv.len()).consensus_encode(w)?;
     for v in vv.iter() {
         len += v.consensus_encode(w)?;
     }
@@ -132,5 +132,3 @@ impl_vec!(p2p::message_blockdata::Inventory);
 impl_vec!((u32, p2p::address::Address));
 #[cfg(feature = "std")]
 impl_vec!(p2p::address::AddrV2Message);
-
-
