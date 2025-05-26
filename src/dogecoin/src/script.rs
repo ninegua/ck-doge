@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 use crate::chainparams::ChainParams;
+use crate::network::Network;
 use crate::opcodes::*;
 
 pub use bitcoin::key::PubkeyHash;
@@ -46,6 +47,35 @@ pub const ECPUB_KEY_UNCOMPRESSED_LEN: usize = 65; // bytes: [x04][32-X][32-Y]
 
 pub type AddressParseError = String;
 
+/// The different types of addresses.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum AddressType {
+    /// Pay to pubkey hash.
+    P2pkh,
+    /// Pay to script hash.
+    P2sh,
+}
+
+impl std::fmt::Display for AddressType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.write_str(match *self {
+            AddressType::P2pkh => "p2pkh",
+            AddressType::P2sh => "p2sh",
+        })
+    }
+}
+
+impl FromStr for AddressType {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "p2pkh" => Ok(AddressType::P2pkh),
+            "p2sh" => Ok(AddressType::P2sh),
+            _ => Err(format!("Unknown address type: {}", s)),
+        }
+    }
+}
+
 #[derive(Clone, Ord, PartialOrd, PartialEq, Eq, Debug, Hash, Default, Serialize, Deserialize)]
 pub struct Address(pub [u8; 21]); // Dogecoin address (base-58 Public Key Hash aka PKH)
 impl Address {
@@ -71,20 +101,33 @@ impl Address {
         }
     }
 
+    pub fn into_unchecked(self) -> Self {
+        self
+    }
+
     pub fn assume_checked(self) -> Self {
         self
     }
 
-    pub fn require_network(
-        self,
-        network: crate::network::Network,
-    ) -> Result<Self, AddressParseError> {
+    pub fn require_network(self, network: Network) -> Result<Self, AddressParseError> {
         let params: &ChainParams = network.as_ref();
         if self.is_valid(params) {
             Ok(self)
         } else {
             Err(format!("Address does not match network {}", network))
         }
+    }
+
+    pub fn address_type(&self) -> AddressType {
+        for network in [Network::Dogecoin, Network::Testnet, Network::Regtest] {
+            if self.is_p2pkh(network.as_ref()) {
+                return AddressType::P2pkh;
+            }
+            if self.is_p2sh(network.as_ref()) {
+                return AddressType::P2sh;
+            }
+        }
+        panic!("Unknown address_type: {}", self)
     }
 }
 
@@ -124,7 +167,8 @@ pub fn hash160_to_address(hash: &[u8], prefix: u8) -> Address {
     addr
 }
 
-pub fn p2pkh_address(pubkey: &[u8], chain: &ChainParams) -> Result<Address, String> {
+pub fn p2pkh_address(pubkey: &[u8], chain: impl AsRef<ChainParams>) -> Result<Address, String> {
+    let chain = chain.as_ref();
     if !((pubkey.len() == ECPUB_KEY_UNCOMPRESSED_LEN && pubkey[0] == 0x04)
         || (pubkey.len() == ECPUB_KEY_COMPRESSED_LEN && (pubkey[0] == 0x02 || pubkey[0] == 0x03)))
     {
@@ -137,7 +181,8 @@ pub fn p2pkh_address(pubkey: &[u8], chain: &ChainParams) -> Result<Address, Stri
     ))
 }
 
-pub fn p2sh_address(script: &[u8], chain: &ChainParams) -> Result<Address, String> {
+pub fn p2sh_address(script: &[u8], chain: impl AsRef<ChainParams>) -> Result<Address, String> {
+    let chain = chain.as_ref();
     if script.is_empty() {
         return Err("p2sh_address: bad script length".to_string());
     }
