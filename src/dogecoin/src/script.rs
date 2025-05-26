@@ -130,12 +130,15 @@ impl Address {
         None
     }
 
-    pub fn p2pkh(pubkey: &[u8], chain: impl AsRef<ChainParams>) -> Result<Address, String> {
-        p2pkh_address(pubkey, chain)
+    pub fn p2pkh(
+        pk: impl Into<PubkeyHash>,
+        chain: impl AsRef<ChainParams>,
+    ) -> Result<Address, String> {
+        p2pkh_address(pk.into().as_ref(), chain)
     }
 
-    pub fn p2sh(pubkey: &[u8], chain: impl AsRef<ChainParams>) -> Result<Address, String> {
-        p2sh_address(pubkey, chain)
+    pub fn p2sh(script: &Script, chain: impl AsRef<ChainParams>) -> Result<Address, String> {
+        p2sh_address(script.as_bytes(), chain)
     }
 }
 
