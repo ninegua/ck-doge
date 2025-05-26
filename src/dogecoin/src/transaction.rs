@@ -58,6 +58,9 @@ pub struct OutPoint {
 
 impl OutPoint {
     pub const SIZE: usize = 36;
+    pub fn new(txid: Txid, vout: u32) -> Self {
+        OutPoint { txid, vout }
+    }
     pub fn is_null(&self) -> bool {
         self.vout == u32::MAX && self.txid == Txid::default()
     }
