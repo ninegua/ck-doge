@@ -59,6 +59,12 @@ impl<T> From<Vec<T>> for Vec_<T> {
     }
 }
 
+impl<T> From<Vec_<T>> for Vec<T> {
+    fn from(vec: Vec_<T>) -> Self {
+        vec.0
+    }
+}
+
 impl<T> AsRef<Vec<T>> for Vec_<T> {
     fn as_ref(&self) -> &Vec<T> {
         &self.0
