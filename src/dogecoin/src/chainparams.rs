@@ -1,3 +1,4 @@
+use crate::network::Network;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
@@ -48,6 +49,16 @@ pub static DOGE_REG_TEST_CHAIN: ChainParams = ChainParams {
     bip32_wif_privkey_prefix: "tprv",
     bip32_wif_pubkey_prefix: "tpub",
 };
+
+impl AsRef<ChainParams> for Network {
+    fn as_ref(&self) -> &'static ChainParams {
+        match self {
+            Network::Dogecoin => &DOGE_MAIN_NET_CHAIN,
+            Network::Testnet => &DOGE_TEST_NET_CHAIN,
+            Network::Regtest => &DOGE_REG_TEST_CHAIN,
+        }
+    }
+}
 
 pub type KeyBits = u8; // keyECPriv,keyECPub,keyBip32Priv,keyBip32Pub,dogeMainNet,dogeTestNet
 

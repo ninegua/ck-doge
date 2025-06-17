@@ -30,9 +30,10 @@ serde_bytes = "0.11"
 ciborium = "0.2"
 base64 = "0.21"
 sha3 = "0.10"
-bitcoin = { version = "0.32", default-features = false, features = [
+bitcoin = { version = "^0.32.6", default-features = false, features = [
   "std",
   "secp-lowmemory",
+  "serde",
 ] }
 hex = { package = "hex-conservative", version = "0.2", default-features = false, features = [
   "alloc",

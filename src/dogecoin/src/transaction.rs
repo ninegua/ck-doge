@@ -5,8 +5,9 @@
 use bitcoin::consensus::{encode, Decodable, Encodable};
 use bitcoin::hashes::{hash_newtype, sha256d, Hash};
 use bitcoin::{ScriptBuf, VarInt};
-use bitcoin_io::{BufRead, Error, Write};
+use bitcoin_io::{Error, Read, Write};
 use core::cmp;
+use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 
 use crate::{consensus_decode_from_vec, consensus_encode_vec, err_string};
@@ -39,7 +40,7 @@ impl Encodable for Txid {
 
 impl Decodable for Txid {
     #[inline]
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         let hash: sha256d::Hash = Decodable::consensus_decode_from_finite_reader(r)?;
@@ -47,7 +48,7 @@ impl Decodable for Txid {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct OutPoint {
     /// The referenced transaction's txid.
     pub txid: Txid,
@@ -57,6 +58,9 @@ pub struct OutPoint {
 
 impl OutPoint {
     pub const SIZE: usize = 36;
+    pub fn new(txid: Txid, vout: u32) -> Self {
+        OutPoint { txid, vout }
+    }
     pub fn is_null(&self) -> bool {
         self.vout == u32::MAX && self.txid == Txid::default()
     }
@@ -82,7 +86,7 @@ impl Encodable for OutPoint {
 
 impl Decodable for OutPoint {
     #[inline]
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         Ok(OutPoint {
@@ -92,7 +96,7 @@ impl Decodable for OutPoint {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Default)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Default, Serialize, Deserialize)]
 pub struct Witness {
     pub stack: Vec<u8>,
 }
@@ -107,7 +111,7 @@ impl Encodable for Witness {
 
 impl Decodable for Witness {
     #[inline]
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         Ok(Witness {
@@ -116,7 +120,7 @@ impl Decodable for Witness {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct TxIn {
     pub prevout: OutPoint,
     pub script: ScriptBuf,
@@ -200,7 +204,7 @@ impl Encodable for TxIn {
 
 impl Decodable for TxIn {
     #[inline]
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         Ok(TxIn {
@@ -212,7 +216,7 @@ impl Decodable for TxIn {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct TxOut {
     pub value: u64,
     pub script_pubkey: ScriptBuf,
@@ -265,7 +269,7 @@ impl Encodable for TxOut {
 
 impl Decodable for TxOut {
     #[inline]
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         Ok(TxOut {
@@ -292,7 +296,7 @@ impl Decodable for TxOut {
  *   - CTxWitness wit;
  * - uint32_t nLockTime
  */
-#[derive(Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash, Serialize, Deserialize)]
 pub struct Transaction {
     pub version: u32,
     pub lock_time: u32,
@@ -396,7 +400,7 @@ impl Encodable for Transaction {
 }
 
 impl Decodable for Transaction {
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         Ok(Transaction {

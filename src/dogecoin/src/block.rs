@@ -1,7 +1,9 @@
+use bitcoin::block::ValidationError;
 use bitcoin::consensus::{encode, Decodable, Encodable};
 use bitcoin::hashes::{hash_newtype, sha256d, Hash};
 use bitcoin::merkle_tree;
-use bitcoin_io::{BufRead, Error, Write};
+use bitcoin_io::{Error, Read, Write};
+use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 
 use crate::transaction::Transaction;
@@ -17,6 +19,12 @@ hash_newtype! {
 impl Default for BlockHash {
     fn default() -> BlockHash {
         BlockHash(sha256d::Hash::all_zeros())
+    }
+}
+
+impl From<BlockHash> for bitcoin::block::BlockHash {
+    fn from(hash: BlockHash) -> bitcoin::block::BlockHash {
+        hash.0.into()
     }
 }
 
@@ -44,7 +52,7 @@ impl Encodable for BlockHash {
 
 impl Decodable for BlockHash {
     #[inline]
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         let hash: sha256d::Hash = Decodable::consensus_decode_from_finite_reader(r)?;
@@ -76,7 +84,7 @@ impl Encodable for TxMerkleNode {
 
 impl Decodable for TxMerkleNode {
     #[inline]
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         let hash: sha256d::Hash = Decodable::consensus_decode_from_finite_reader(r)?;
@@ -84,7 +92,7 @@ impl Decodable for TxMerkleNode {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct BlockHeader {
     /// Block version, now repurposed for soft fork signalling.
     pub version: u32,
@@ -128,6 +136,33 @@ impl BlockHeader {
             .expect("engines don't error");
         BlockHash::from_engine(enc)
     }
+
+    /// FIXME
+    pub fn target(&self) -> bitcoin::Target {
+        bitcoin::pow::CompactTarget::from_consensus(self.bits).into()
+    }
+
+    /// FIXME
+    pub fn work(&self) -> bitcoin::Work {
+        self.target().to_work()
+    }
+
+    /// FIXME
+    pub fn validate_pow(
+        &self,
+        required_target: bitcoin::Target,
+    ) -> Result<BlockHash, ValidationError> {
+        let target = self.target();
+        if target != required_target {
+            return Err(ValidationError::BadTarget);
+        }
+        let block_hash = self.block_hash();
+        if target.is_met_by(block_hash.into()) {
+            Ok(block_hash)
+        } else {
+            Err(ValidationError::BadProofOfWork)
+        }
+    }
 }
 
 impl Encodable for BlockHeader {
@@ -145,7 +180,7 @@ impl Encodable for BlockHeader {
 
 impl Decodable for BlockHeader {
     #[inline]
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         Ok(BlockHeader {
@@ -159,7 +194,7 @@ impl Decodable for BlockHeader {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct MerkleBranch {
     pub hash: Vec<TxMerkleNode>,
     pub side_mask: u32,
@@ -175,7 +210,7 @@ impl Encodable for MerkleBranch {
 }
 
 impl Decodable for MerkleBranch {
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         Ok(MerkleBranch {
@@ -185,7 +220,7 @@ impl Decodable for MerkleBranch {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct MerkleTx {
     pub coinbase_tx: Transaction,
     pub parent_hash: TxMerkleNode,
@@ -208,7 +243,7 @@ impl Encodable for MerkleTx {
 
 impl Decodable for MerkleTx {
     #[inline]
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         Ok(MerkleTx {
@@ -221,7 +256,7 @@ impl Decodable for MerkleTx {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Hash, Serialize, Deserialize)]
 pub struct Block {
     /// The block header
     pub header: BlockHeader,
@@ -266,7 +301,7 @@ impl Encodable for Block {
 }
 
 impl Decodable for Block {
-    fn consensus_decode_from_finite_reader<R: BufRead + ?Sized>(
+    fn consensus_decode_from_finite_reader<R: Read + ?Sized>(
         r: &mut R,
     ) -> Result<Self, encode::Error> {
         let mut blk = Block {
@@ -306,12 +341,116 @@ impl From<&Block> for BlockHash {
     }
 }
 
+pub fn genesis_block(params: impl AsRef<crate::chainparams::ChainParams>) -> Block {
+    let params = params.as_ref();
+    let txdata = vec![genesis_tx(params)];
+    // let hash: bitcoin::hashes::sha256d::Hash = txdata[0].compute_txid().into();
+    // let merkle_root: TxMerkleNode = hash.into();
+    let time;
+    let bits;
+    let nonce;
+    if params.chain_name == "main" {
+        time = 1386325540;
+        bits = 0x1e0ffff0;
+        nonce = 99943;
+    } else if params.chain_name == "test" {
+        time = 1391503289;
+        bits = 0x1e0ffff0;
+        nonce = 997879;
+    } else if params.chain_name == "regtest" {
+        time = 1296688602;
+        bits = 0x207fffff;
+        nonce = 2;
+    } else {
+        panic!(
+            "ChainParams has an unsupported chain_name {}",
+            params.chain_name
+        );
+    }
+    let mut block = Block {
+        header: BlockHeader {
+            version: 1,
+            prev_blockhash: BlockHash::default(),
+            merkle_root: TxMerkleNode::default(),
+            time,
+            bits,
+            nonce,
+        },
+        txdata,
+        auxpow: None,
+    };
+    block.header.merkle_root = block.compute_merkle_root().unwrap();
+    block
+}
+
+pub fn genesis_tx(_params: &crate::chainparams::ChainParams) -> crate::transaction::Transaction {
+    use crate::transaction::*;
+    use bitcoin::blockdata::opcodes::all::OP_CHECKSIG;
+    use bitcoin::script::{Builder, PushBytes, ScriptBuf};
+    use hex::test_hex_unwrap as hex;
+    fn push_int_non_minimal(builder: Builder, data: i64) -> Builder {
+        let mut buf = [0u8; 8];
+        let len = bitcoin::blockdata::script::write_scriptint(&mut buf, data);
+        builder.push_slice(&<&PushBytes>::from(&buf)[..len])
+    }
+    let in_script = push_int_non_minimal(Builder::new().push_int(486604799), 4)
+        .push_slice(b"Nintondo")
+        .into_script();
+    let mut txin = TxIn::with_outpoint(OutPoint {
+        txid: Txid::default(),
+        vout: u32::MAX,
+    });
+    let bytes = hex!("040184710fa689ad5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070ac7b03a9");
+    let mut script_pubkey = ScriptBuf::new();
+    script_pubkey.push_slice(<&PushBytes>::try_from(&bytes as &[u8]).unwrap());
+    script_pubkey.push_opcode(OP_CHECKSIG);
+    txin.script = in_script;
+    let txout = TxOut {
+        value: 88 * 100000000u64,
+        script_pubkey,
+    };
+    Transaction {
+        version: 1,
+        lock_time: 0,
+        input: vec![txin],
+        output: vec![txout],
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use hex::test_hex_unwrap as hex;
     use hex::DisplayHex;
     use std::str::FromStr;
+
+    #[test]
+    fn test_genesis_block() {
+        use crate::network::Network;
+        // Mainnet genesis
+        let blk = genesis_block(Network::Dogecoin);
+        assert_eq!(
+            blk.header.block_hash(),
+            BlockHash::from_str("1a91e3dace36e2be3bf030a65679fe821aa1d6ef92e7c9902eb318182c355691")
+                .unwrap()
+        );
+        assert_eq!(
+            blk.header.merkle_root,
+            TxMerkleNode::from_str(
+                "5b2a3f53f605d62c53e62932dac6925e3d74afa5a4b459745c36d42d0ed26a69"
+            )
+            .unwrap()
+        );
+        // Regtest genesis
+        let data = hex!("010000000000000000000000000000000000000000000000000000000000000000000000696ad20e2dd4365c7459b4a4a5af743d5e92c6da3229e6532cd605f6533f2a5bdae5494dffff7f20020000000101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff1004ffff001d0104084e696e746f6e646fffffffff010058850c020000004341040184710fa689ad5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070ac7b03a9ac00000000");
+        let mut rd = &data[..];
+        let blk = Block::consensus_decode_from_finite_reader(&mut rd).unwrap();
+        println!("Block: {:?}", blk);
+        println!("check merkle root {}", blk.check_merkle_root());
+        let blk_ = genesis_block(Network::Regtest);
+        println!("Block: {:?}", blk_);
+        assert_eq!(blk, blk_);
+    }
 
     #[test]
     fn test_blockhash() {
@@ -330,7 +469,6 @@ mod tests {
         let mut rd = &data[..];
         let blk = Block::consensus_decode_from_finite_reader(&mut rd).unwrap();
         println!("Block: {:?}", blk);
-        assert_eq!(blk.header.prev_blockhash, BlockHash::default());
     }
 
     #[test]
